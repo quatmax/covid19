@@ -29,7 +29,7 @@ function addDataSet(chart, label_, color, province, country)
         for (index = 1; index < allTextLines.length; index++) {
             var line = allTextLines[index]; 
             var lineData = line.split(/,/);
-            if( lineData[0].includes(province) && lineData[1].includes(country) )
+            if(lineData[0] == province && lineData[1] == country)
             {
                 countryData = lineData.slice(4).map(function(item) {return parseInt(item, 10); });
                 break;
@@ -69,15 +69,28 @@ function fillSelect(country)
             opt.innerHTML = label;
             opt.id = data[0] + '#' + data[1];
             select.appendChild( opt );
+            if(data[1] == country)
+            {
+                select.selectedIndex = index - 1;
+                opt.select = true;
+            }
         }
     });
 }
 function dashboard()
 {
+    const queryString = window.location.search;
+    const urlParams = new URLSearchParams(queryString);
+    const key = 'country';
+    var country = 'Austria';
+    if( urlParams.has(key))
+    {
+        country = urlParams.get(key);        
+    }
     var ctx = document.getElementById('theChart').getContext('2d');
     var chart = new Chart(ctx, {type: 'line', options: {} });
-    fillSelect('Austria');
-    addChart(chart, '', 'Austria');
+    fillSelect(country);
+    addChart(chart, '', country);
     var select = document.getElementById('selectCountry');
     select.onchange = function()
     {
