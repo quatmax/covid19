@@ -24,7 +24,7 @@ class File {
     }
     visitLabels(visitLabels) {
         visitFile(function (allTextLines) {
-            visitLabels(allTextLines[0].split(/,/));
+            visitLabels(allTextLines[0].split(/,/).slice(4));
         });
     }
 };
@@ -56,9 +56,32 @@ class Country {
 class Countries {
     constructor() {
         this.countries = new Map();
+        this.labels = [];
     }
     static load() {
         var cs = new Countries();
+        new File('confirmed').visitLabels(function(labelsData){ this.labels = labelsData; });
+        new File('confirmed').visitLine(function(lineData) {
+            var country = cs.countries.get(line[1]);
+            if(country == undefined) {
+                country = new Country();
+            }
+            country.addConfirmed(lineData);
+        });
+        new File('recovered').visitLine(function(lineData) {
+            var country = cs.countries.get(line[1]);
+            if(country == undefined) {
+                country = new Country();
+            }
+            country.addRecovered(lineData);
+        });
+        new File('deaths').visitLine(function(lineData) {
+            var country = cs.countries.get(line[1]);
+            if(country == undefined) {
+                country = new Country();
+            }
+            country.addDeaths(lineData);
+        });
     }
 };
 function addDataSet(chart, label_, color, province, country) {
