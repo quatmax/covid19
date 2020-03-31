@@ -1,6 +1,7 @@
 class File {
-    constructor( filename ) {
+    constructor(file, onFinished) {
         this.filename = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_" + file + "_global.csv";
+        this.onFinished = onFinished;
     }
     visitFile(visitor) {
         var dataFile = new XMLHttpRequest();
@@ -9,6 +10,9 @@ class File {
             if (dataFile.readyState === 4) {
                 if (dataFile.status === 200 || dataFile.status == 0) {
                     visitor(dataFile.responseText.split(/\r\n|\n/));
+                    if(this.onFinished != undefined) {
+                        this.onFinished();
+                    }
                 }
             }
         };
@@ -58,10 +62,10 @@ class Countries {
         this.countries = new Map();
         this.labels = [];
     }
-    static load() {
+    static load(onFinished) {
         var cs = new Countries();
         new File('confirmed').visitLabels(function(labelsData){ this.labels = labelsData; });
-        new File('confirmed').visitLine(function(lineData) {
+        new File('confirmed', onFinished).visitLine(function(lineData) {
             var country = cs.countries.get(line[1]);
             if(country == undefined) {
                 country = new Country();
@@ -109,30 +113,44 @@ function addChart(chart, province, country) {
     addDataSet(chart, 'recovered', 'rgb(0, 204, 102)', province, country);
     addDataSet(chart, 'deaths', 'rgb(0, 0, 0)', province, country);
 }
-function fillSelect(country) {
-    visitFile('confirmed', function (allText) {
-        var allTextLines = allText.split(/\r\n|\n/);
-        for (index = 1; index < allTextLines.length; index++) {
-            var line = allTextLines[index];
-            var lineParts = line.split(/,/);
-            data = lineParts.slice(0, 2);
-            label = data[1];
-            if (data[0].length > 0) {
-                label += " (" + data[0] + ")";
-            }
-            label += ' confirmed cases ' + lineParts[lineParts.length - 1];
-            var select = document.getElementById('selectCountry');
-            var opt = document.createElement('option');
-            opt.value = index - 1;
-            opt.innerHTML = label;
-            opt.id = data[0] + '#' + data[1];
-            select.appendChild(opt);
-            if (data[1] == country) {
-                select.selectedIndex = index - 1;
-                opt.select = true;
-            }
-        }
+function fillSelect(country,  countries) {
+    var select = document.getElementById('selectCountry');
+    countries.countries.forEach(function(value, key){
+        var opt = document.createElement('option');
+        // opt.value = index - 1;
+        opt.innerHTML = label;
+        // opt.id = data[0] + '#' + data[1];
+        select.appendChild(opt);
+        // if (data[1] == country) {
+        //     select.selectedIndex = index - 1;
+        //     opt.select = true;
+        // }
+
     });
+
+    // visitFile('confirmed', function (allText) {
+    //     var allTextLines = allText.split(/\r\n|\n/);
+    //     for (index = 1; index < allTextLines.length; index++) {
+    //         var line = allTextLines[index];
+    //         var lineParts = line.split(/,/);
+    //         data = lineParts.slice(0, 2);
+    //         label = data[1];
+    //         if (data[0].length > 0) {
+    //             label += " (" + data[0] + ")";
+    //         }
+    //         label += ' confirmed cases ' + lineParts[lineParts.length - 1];
+    //         var select = document.getElementById('selectCountry');
+    //         var opt = document.createElement('option');
+    //         opt.value = index - 1;
+    //         opt.innerHTML = label;
+    //         opt.id = data[0] + '#' + data[1];
+    //         select.appendChild(opt);
+    //         if (data[1] == country) {
+    //             select.selectedIndex = index - 1;
+    //             opt.select = true;
+    //         }
+    //     }
+    // });
 }
 function dashboard() {
     const queryString = window.location.search;
@@ -142,14 +160,17 @@ function dashboard() {
     if (urlParams.has(key)) {
         country = urlParams.get(key);
     }
-    var ctx = document.getElementById('theChart').getContext('2d');
-    var chart = new Chart(ctx, { type: 'line', options: {} });
-    fillSelect(country);
-    addChart(chart, '', country);
-    var select = document.getElementById('selectCountry');
-    select.onchange = function () {
-        var option = select.options[select.selectedIndex];
-        var splitted = option.id.split('#');
-        addChart(chart, splitted[0], splitted[1]);
-    };
+
+    Countries.load(function(countries) {
+        fillSelect(country,  countries);
+    });
+    // var ctx = document.getElementById('theChart').getContext('2d');
+    // var chart = new Chart(ctx, { type: 'line', options: {} });
+    // addChart(chart, '', country);
+    // var select = document.getElementById('selectCountry');
+    // select.onchange = function () {
+    //     var option = select.options[select.selectedIndex];
+    //     var splitted = option.id.split('#');
+    //     addChart(chart, splitted[0], splitted[1]);
+    // };
 }
