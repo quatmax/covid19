@@ -74,7 +74,11 @@ class Country {
     addDeaths(lineData) { this.addInts(lineData, this.deaths); }
 
     average4DayGrowth() {
-        return -1;
+        var diff = 0.0;
+        for( var i = this.confirmed.length - 1; i >= this.confirmed.length - 5; --i ) {
+            diff += this.confirmed[i] - this.confirmed[i-1];
+        }
+        return diff / 4.0;
     }
 };
 class Countries {
@@ -133,9 +137,9 @@ class Countries {
 
 function fillSelect(chart, country, countries) {
     var select = document.getElementById('selectCountry');
-    countries.sortByConfirmed().forEach(function (value) {
+    countries.sortByConfirmed().forEach(function (value, index) {
         var opt = document.createElement('option');
-        opt.innerHTML = value.name + ' (' + value.currentConfirmed() + ')';
+        opt.innerHTML = ( index + 1 ) + '. ' + value.name + ' (' + value.currentConfirmed() + ')';
         opt.id = value.name;
         select.appendChild(opt);
         if (value.name == country) {
