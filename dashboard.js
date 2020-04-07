@@ -78,7 +78,7 @@ class Country {
         for (var i = this.confirmed.length - 1; i >= this.confirmed.length - 5; --i) {
             diff += ((this.confirmed[i] - this.confirmed[i - 1]) / this.confirmed[i - 1]) * 100.0;
         }
-        return Number.parseFloat(diff / 4.0).toFixed(2);
+        return Number.parseFloat(diff / 4.0).toFixed(1);
     }
 };
 class Countries {
@@ -161,7 +161,7 @@ function fillChart(chart, country, countries) {
             chart.data.datasets.push({ label: 'recovered (' + value.currentRecovered() + ')', fill: false, borderColor: 'rgb(0, 204, 102)', data: value.recovered });
             chart.data.datasets.push({ label: 'deaths (' + value.currentDeaths() + ')', fill: false, borderColor: 'rgb(0, 0, 0)', data: value.deaths });
             var button = document.getElementById('button4dAvg');
-            button.innerHTML = 'avg. 4d ' + value.average4DayGrowth() + '%';
+            button.innerHTML = 'avg. 4d +' + value.average4DayGrowth() + '%';
             if (value.average4DayGrowth() < 10.0) {
                 button.className = 'btn btn-outline-success';
             }
