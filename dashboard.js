@@ -75,10 +75,10 @@ class Country {
 
     average4DayGrowth() {
         var diff = 0.0;
-        for( var i = this.confirmed.length - 1; i >= this.confirmed.length - 5; --i ) {
-            diff += this.confirmed[i] - this.confirmed[i-1];
+        for (var i = this.confirmed.length - 1; i >= this.confirmed.length - 5; --i) {
+            diff += ((this.confirmed[i] - this.confirmed[i - 1]) / this.confirmed[i - 1]) * 100.0;
         }
-        return diff / 4.0;
+        return Number.parseFloat(diff / 4.0).toFixed(2);
     }
 };
 class Countries {
@@ -139,7 +139,7 @@ function fillSelect(chart, country, countries) {
     var select = document.getElementById('selectCountry');
     countries.sortByConfirmed().forEach(function (value, index) {
         var opt = document.createElement('option');
-        opt.innerHTML = ( index + 1 ) + '. ' + value.name + ' (' + value.currentConfirmed() + ')';
+        opt.innerHTML = (index + 1) + '. ' + value.name + ' (' + value.currentConfirmed() + ')';
         opt.id = value.name;
         select.appendChild(opt);
         if (value.name == country) {
@@ -160,10 +160,20 @@ function fillChart(chart, country, countries) {
             chart.data.datasets.push({ label: 'confirmed (' + value.currentConfirmed() + ')', fill: false, borderColor: 'rgb(255, 99, 132)', data: value.confirmed });
             chart.data.datasets.push({ label: 'recovered (' + value.currentRecovered() + ')', fill: false, borderColor: 'rgb(0, 204, 102)', data: value.recovered });
             chart.data.datasets.push({ label: 'deaths (' + value.currentDeaths() + ')', fill: false, borderColor: 'rgb(0, 0, 0)', data: value.deaths });
+            var button = document.getElementById('button4dAvg');
+            button.innerHTML = 'avg. 4d ' + value.average4DayGrowth() + '%';
+            if (value.average4DayGrowth() < 10.0) {
+                button.className = 'btn btn-outline-success';
+            }
+            else if (value.average4DayGrowth() < 20.0) {
+                button.className = 'btn btn-outline-warning';
+            }
+            else if (value.average4DayGrowth() < 100.0) {
+                button.className = 'btn btn-outline-danger';
+            }
         }
     });
     chart.update();
-
 }
 function dashboard() {
     const queryString = window.location.search;
