@@ -117,6 +117,9 @@ class Countries {
             });
         });
     }
+    getCountry(country) {
+        return this.countries.get(country);
+    }
     sortByConfirmed() {
         var sortByConfirmed = [];
         this.countries.forEach(function (value) {
@@ -155,25 +158,26 @@ function fillSelect(chart, country, countries) {
 function fillChart(chart, country, countries) {
     chart.data.labels = countries.labels;
     chart.data.datasets = [];
-    countries.countries.forEach(function (value, key) {
-        if (key == country) {
-            chart.data.datasets.push({ label: 'confirmed (' + value.currentConfirmed() + ')', fill: false, borderColor: 'rgb(255, 99, 132)', data: value.confirmed });
-            chart.data.datasets.push({ label: 'recovered (' + value.currentRecovered() + ')', fill: false, borderColor: 'rgb(0, 204, 102)', data: value.recovered });
-            chart.data.datasets.push({ label: 'deaths (' + value.currentDeaths() + ')', fill: false, borderColor: 'rgb(0, 0, 0)', data: value.deaths });
-            var button = document.getElementById('button4dAvg');
-            button.innerHTML = 'avg. 4d +' + value.average4DayGrowth() + '%';
-            if (value.average4DayGrowth() < 10.0) {
-                button.className = 'btn btn-outline-success';
-            }
-            else if (value.average4DayGrowth() < 20.0) {
-                button.className = 'btn btn-outline-warning';
-            }
-            else if (value.average4DayGrowth() < 100.0) {
-                button.className = 'btn btn-outline-danger';
-            }
-        }
-    });
+    var value = countries.getCountry(country);
+    chart.data.datasets.push({ label: 'confirmed (' + value.currentConfirmed() + ')', fill: false, borderColor: 'rgb(255, 99, 132)', data: value.confirmed });
+    chart.data.datasets.push({ label: 'recovered (' + value.currentRecovered() + ')', fill: false, borderColor: 'rgb(0, 204, 102)', data: value.recovered });
+    chart.data.datasets.push({ label: 'deaths (' + value.currentDeaths() + ')', fill: false, borderColor: 'rgb(0, 0, 0)', data: value.deaths });
     chart.update();
+    fillInfos(country, countries);
+}
+function fillInfos(country, countries) {
+    var value = countries.getCountry(country);
+    var button = document.getElementById('button4dAvg');
+    button.innerHTML = 'avg. 4d +' + value.average4DayGrowth() + '%';
+    if (value.average4DayGrowth() < 10.0) {
+        button.className = 'btn btn-outline-success';
+    }
+    else if (value.average4DayGrowth() < 20.0) {
+        button.className = 'btn btn-outline-warning';
+    }
+    else if (value.average4DayGrowth() < 100.0) {
+        button.className = 'btn btn-outline-danger';
+    }
 }
 function dashboard() {
     const queryString = window.location.search;
