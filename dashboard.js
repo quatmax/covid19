@@ -136,6 +136,15 @@ class Countries {
         });
         return sortByConfirmed;
     }
+    totalConfirmed() {
+        
+    }
+    totalRecovered() {
+        
+    }
+    totalDeaths() {
+        
+    }
 };
 
 function fillSelect(chart, country, countries) {
@@ -154,6 +163,7 @@ function fillSelect(chart, country, countries) {
         var option = select.options[select.selectedIndex];
         fillChart(chart, option.id, countries);
     };
+    fillTotals(countries);
 }
 function fillChart(chart, country, countries) {
     chart.data.labels = countries.labels;
@@ -178,6 +188,11 @@ function fillInfos(country, countries) {
     else if (value.average4DayGrowth() < 100.0) {
         button.className = 'btn btn-outline-danger';
     }
+}
+function fillTotals(countries) {
+    document.getElementById('buttonTotalConfirmed').innerHTML = 'Total confirmed: ' + countries.totalConfirmed();
+    document.getElementById('buttonTotalRecovered').innerHTML = 'Total recovered: ' + countries.totalRecovered();
+    document.getElementById('buttonTotalDeaths').innerHTML = 'Total deaths: ' + countries.totalDeaths();
 }
 function dashboard() {
     const queryString = window.location.search;
