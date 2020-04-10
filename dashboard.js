@@ -222,7 +222,7 @@ function dashboard() {
     }
 
     var ctx = document.getElementById('theChart').getContext('2d');
-    var chart = new Chart(ctx, { type: 'line', options: {} });
+    var chart = new Chart(ctx, { type: 'line', options: { maintainAspectRatio: false } });
     Countries.load(function (countries) {
         fillSelect(chart, country, countries);
         fillChart(chart, country, countries);
