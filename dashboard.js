@@ -1,3 +1,9 @@
+function formatFloat(f) {
+    return f.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function formatNumber(f) {
+    return f.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
 
 function getFileName(file) {
     return "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_" + file + "_global.csv";
@@ -78,7 +84,7 @@ class Country {
         for (var i = this.confirmed.length - 1; i >= this.confirmed.length - 5; --i) {
             diff += ((this.confirmed[i] - this.confirmed[i - 1]) / this.confirmed[i - 1]) * 100.0;
         }
-        return Number.parseFloat(diff / 4.0).toFixed(1);
+        return Number.parseFloat(diff / 4.0);
     }
 };
 class Countries {
@@ -137,13 +143,25 @@ class Countries {
         return sortByConfirmed;
     }
     totalConfirmed() {
-        
+        var totalConfirmed = 0;
+        this.countries.forEach(function (value) {
+            totalConfirmed += Math.max(0, value.currentConfirmed());
+        });
+        return formatNumber(totalConfirmed);
     }
     totalRecovered() {
-        
+        var totalRecovered = 0;
+        this.countries.forEach(function (value) {
+            totalRecovered += Math.max(0, value.currentRecovered());
+        });
+        return formatNumber(totalRecovered);
     }
     totalDeaths() {
-        
+        var totalDeaths = 0;
+        this.countries.forEach(function (value) {
+            totalDeaths += Math.max(0, value.currentDeaths());
+        });
+        return formatNumber(totalDeaths);
     }
 };
 
@@ -178,7 +196,7 @@ function fillChart(chart, country, countries) {
 function fillInfos(country, countries) {
     var value = countries.getCountry(country);
     var button = document.getElementById('button4dAvg');
-    button.innerHTML = 'avg. 4d +' + value.average4DayGrowth() + '%';
+    button.innerHTML = 'avg. 4d +' + formatFloat(value.average4DayGrowth());
     if (value.average4DayGrowth() < 10.0) {
         button.className = 'btn btn-outline-success';
     }
