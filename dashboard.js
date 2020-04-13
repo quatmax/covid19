@@ -25,7 +25,10 @@ function visitFile(file, visitor) {
 function visitLineData(file, visitLine, onFinished) {
     visitFile(file, function (allTextLines) {
         for (var index = 1; index < allTextLines.length; index++) {
-            var line = allTextLines[index];
+            var line = allTextLines[index].replace('"Korea, South"', 'South Korea');
+            if (line.trim().length == 0) {
+                continue;
+            }
             visitLine(line.split(/,/));
         }
         if (onFinished != undefined) {
@@ -142,6 +145,38 @@ class Countries {
         });
         return sortByConfirmed;
     }
+    sortByRecovered() {
+        var sortByRecovered = [];
+        this.countries.forEach(function (value) {
+            sortByRecovered.push(value);
+        });
+        sortByRecovered.sort(function (a, b) {
+            if (a.currentRecovered() > b.currentRecovered()) {
+                return -1;
+            }
+            if (a.currentRecovered() < b.currentRecovered()) {
+                return 1;
+            }
+            return 0;
+        });
+        return sortByRecovered;
+    }
+    sortByDeaths() {
+        var sortByDeaths = [];
+        this.countries.forEach(function (value) {
+            sortByDeaths.push(value);
+        });
+        sortByDeaths.sort(function (a, b) {
+            if (a.currentDeaths() > b.currentDeaths()) {
+                return -1;
+            }
+            if (a.currentDeaths() < b.currentDeaths()) {
+                return 1;
+            }
+            return 0;
+        });
+        return sortByDeaths;
+    }
     totalConfirmed() {
         var totalConfirmed = 0;
         this.countries.forEach(function (value) {
@@ -165,9 +200,10 @@ class Countries {
     }
 };
 
-function fillSelect(chart, country, countries) {
+function fillSelectSorted(chart, country, countries, sortedCountries) {
     var select = document.getElementById('selectCountry');
-    countries.sortByConfirmed().forEach(function (value, index) {
+    select.innerHTML = '';
+    sortedCountries.forEach(function (value, index) {
         var opt = document.createElement('option');
         opt.innerHTML = (index + 1) + '. ' + value.name + ' (' + value.currentConfirmed() + ')';
         opt.id = value.name;
@@ -181,7 +217,10 @@ function fillSelect(chart, country, countries) {
         var option = select.options[select.selectedIndex];
         fillChart(chart, option.id, countries);
     };
-    fillTotals(countries);
+}
+
+function fillSelect(chart, country, countries) {
+    fillSelectSorted(chart, country, countries, countries.sortByConfirmed());
 }
 function fillChart(chart, country, countries) {
     chart.data.labels = countries.labels;
@@ -207,12 +246,35 @@ function fillInfos(country, countries) {
         button.className = 'btn btn-outline-danger';
     }
 }
-function fillTotals(countries) {
-    document.getElementById('buttonTotalConfirmed').innerHTML = 'Total confirmed: ' + countries.totalConfirmed();
-    document.getElementById('buttonTotalRecovered').innerHTML = 'Total recovered: ' + countries.totalRecovered();
-    document.getElementById('buttonTotalDeaths').innerHTML = 'Total deaths: ' + countries.totalDeaths();
+function fillTotals(chart, country, countries) {
+    var confirmed = document.getElementById('buttonTotalConfirmed');
+    confirmed.innerHTML = 'Total confirmed: ' + countries.totalConfirmed();
+    confirmed.classList.add('active');
+    var recovered = document.getElementById('buttonTotalRecovered');
+    recovered.innerHTML = 'Total recovered: ' + countries.totalRecovered();
+    var deaths = document.getElementById('buttonTotalDeaths');
+    deaths.innerHTML = 'Total deaths: ' + countries.totalDeaths();
+
+    confirmed.onclick = function() {
+        confirmed.classList.add('active');
+        recovered.classList.remove('active');
+        deaths.classList.remove('active');
+        fillSelectSorted(chart, country, countries, countries.sortByConfirmed())
+    }
+    recovered.onclick = function() {
+        confirmed.classList.remove('active');
+        recovered.classList.add('active');
+        deaths.classList.remove('active');
+        fillSelectSorted(chart, country, countries, countries.sortByRecovered())
+    }
+    deaths.onclick = function() {
+        confirmed.classList.remove('active');
+        recovered.classList.remove('active');
+        deaths.classList.add('active');
+        fillSelectSorted(chart, country, countries, countries.sortByDeaths())
+    }
 }
-function dashboard() {
+function getURLCountry() {
     const queryString = window.location.search;
     const urlParams = new URLSearchParams(queryString);
     const key = 'country';
@@ -220,11 +282,15 @@ function dashboard() {
     if (urlParams.has(key)) {
         country = urlParams.get(key);
     }
-
+    return country;
+}
+function dashboard() {
+    var country = getURLCountry();
     var ctx = document.getElementById('theChart').getContext('2d');
     var chart = new Chart(ctx, { type: 'line', options: { maintainAspectRatio: false } });
     Countries.load(function (countries) {
         fillSelect(chart, country, countries);
         fillChart(chart, country, countries);
+        fillTotals(chart, country, countries);
     });
 }
