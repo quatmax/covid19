@@ -129,12 +129,17 @@ class Countries {
     getCountry(country) {
         return this.countries.get(country);
     }
-    sortByConfirmed() {
-        var sortByConfirmed = [];
+    sortBy(sorter) {
+        var sortBy = [];
         this.countries.forEach(function (value) {
-            sortByConfirmed.push(value);
+            sortBy.push(value);
         });
-        sortByConfirmed.sort(function (a, b) {
+        sortBy.sort(function (a, b) { return sorter( a, b );});
+        return sortBy;
+    }
+
+    sortByConfirmed() {
+        return this.sortBy(function (a, b) {
             if (a.currentConfirmed() > b.currentConfirmed()) {
                 return -1;
             }
@@ -143,14 +148,9 @@ class Countries {
             }
             return 0;
         });
-        return sortByConfirmed;
     }
     sortByRecovered() {
-        var sortByRecovered = [];
-        this.countries.forEach(function (value) {
-            sortByRecovered.push(value);
-        });
-        sortByRecovered.sort(function (a, b) {
+        return this.sortBy(function (a, b) {
             if (a.currentRecovered() > b.currentRecovered()) {
                 return -1;
             }
@@ -159,14 +159,9 @@ class Countries {
             }
             return 0;
         });
-        return sortByRecovered;
     }
     sortByDeaths() {
-        var sortByDeaths = [];
-        this.countries.forEach(function (value) {
-            sortByDeaths.push(value);
-        });
-        sortByDeaths.sort(function (a, b) {
+        return this.sortBy(function (a, b) {
             if (a.currentDeaths() > b.currentDeaths()) {
                 return -1;
             }
@@ -175,7 +170,6 @@ class Countries {
             }
             return 0;
         });
-        return sortByDeaths;
     }
     totalConfirmed() {
         var totalConfirmed = 0;
