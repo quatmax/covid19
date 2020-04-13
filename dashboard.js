@@ -199,7 +199,7 @@ function fillSelectSorted(chart, country, countries, sortedCountries) {
     select.innerHTML = '';
     sortedCountries.forEach(function (value, index) {
         var opt = document.createElement('option');
-        opt.innerHTML = (index + 1) + '. ' + value.name + ' (' + value.currentConfirmed() + ')';
+        opt.innerHTML = (index + 1) + '. ' + value.name + ' (' + formatNumber(value.currentConfirmed()) + ')';
         opt.id = value.name;
         select.appendChild(opt);
         if (value.name == country) {
@@ -220,9 +220,9 @@ function fillChart(chart, country, countries) {
     chart.data.labels = countries.labels;
     chart.data.datasets = [];
     var value = countries.getCountry(country);
-    chart.data.datasets.push({ label: 'confirmed (' + value.currentConfirmed() + ')', fill: false, borderColor: 'rgb(255, 99, 132)', data: value.confirmed });
-    chart.data.datasets.push({ label: 'recovered (' + value.currentRecovered() + ')', fill: false, borderColor: 'rgb(0, 204, 102)', data: value.recovered });
-    chart.data.datasets.push({ label: 'deaths (' + value.currentDeaths() + ')', fill: false, borderColor: 'rgb(0, 0, 0)', data: value.deaths });
+    chart.data.datasets.push({ label: 'confirmed (' + formatNumber(value.currentConfirmed()) + ')', fill: false, borderColor: 'rgb(255, 99, 132)', data: value.confirmed });
+    chart.data.datasets.push({ label: 'recovered (' + formatNumber(value.currentRecovered()) + ')', fill: false, borderColor: 'rgb(0, 204, 102)', data: value.recovered });
+    chart.data.datasets.push({ label: 'deaths (' + formatNumber(value.currentDeaths()) + ')', fill: false, borderColor: 'rgb(0, 0, 0)', data: value.deaths });
     chart.update();
     fillInfos(country, countries);
 }
