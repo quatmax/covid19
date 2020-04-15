@@ -68,6 +68,9 @@ class Country {
     currentDeaths() {
         return this.upperBoundValue(this.deaths);
     }
+    currentIll() {
+        return this.currentConfirmed() - this.currentRecovered() - this.currentDeaths();
+    }
 
     addInts(lineData, member) {
         var ints = lineData.slice(4).map(function (item) { return parseInt(item, 10); });
@@ -121,7 +124,10 @@ class Countries {
                             cs.countries.set(lineData[1], country);
                         }
                         country.addDeaths(lineData);
-                    }, function () { onFinished(cs); });
+                    }, function () {
+
+                        onFinished(cs);
+                    });
                 });
             });
         });
@@ -134,7 +140,7 @@ class Countries {
         this.countries.forEach(function (value) {
             sortBy.push(value);
         });
-        sortBy.sort(function (a, b) { return sorter( a, b );});
+        sortBy.sort(function (a, b) { return sorter(a, b); });
         return sortBy;
     }
 
@@ -171,26 +177,54 @@ class Countries {
             return 0;
         });
     }
-    totalConfirmed() {
+    sortByIll() {
+        return this.sortBy(function (a, b) {
+            if (a.currentIll() > b.currentIll()) {
+                return -1;
+            }
+            if (a.currentIll() < b.currentIll()) {
+                return 1;
+            }
+            return 0;
+        });
+    }
+    totalConfirmedNumber() {
         var totalConfirmed = 0;
         this.countries.forEach(function (value) {
             totalConfirmed += Math.max(0, value.currentConfirmed());
         });
-        return formatNumber(totalConfirmed);
+        return totalConfirmed;
     }
-    totalRecovered() {
+
+    totalConfirmed() {
+        return formatNumber(this.totalConfirmedNumber());
+    }
+    totalRecoveredNumber() {
         var totalRecovered = 0;
         this.countries.forEach(function (value) {
             totalRecovered += Math.max(0, value.currentRecovered());
         });
-        return formatNumber(totalRecovered);
+        return totalRecovered;
     }
-    totalDeaths() {
+    totalRecovered() {
+        return formatNumber(this.totalRecoveredNumber());
+    }
+    totalDeathsNumber() {
         var totalDeaths = 0;
         this.countries.forEach(function (value) {
             totalDeaths += Math.max(0, value.currentDeaths());
         });
-        return formatNumber(totalDeaths);
+        return totalDeaths;
+    }
+    totalDeaths() {
+        return formatNumber(this.totalDeathsNumber());
+    }
+    totalIllNumber() {
+        return this.totalConfirmedNumber() - this.totalRecoveredNumber()  - this.totalDeathsNumber();
+
+    }
+    totalIll() {
+        return formatNumber(this.totalIllNumber());
     }
 };
 
@@ -231,14 +265,16 @@ function fillInfos(country, countries) {
     var button = document.getElementById('button4dAvg');
     button.innerHTML = 'avg. 4d +' + formatFloat(value.average4DayGrowth());
     if (value.average4DayGrowth() < 10.0) {
-        button.className = 'btn btn-outline-success';
+        button.className = 'btn btn-outline-success mr-3';
     }
     else if (value.average4DayGrowth() < 20.0) {
-        button.className = 'btn btn-outline-warning';
+        button.className = 'btn btn-outline-warning mr-3';
     }
     else if (value.average4DayGrowth() < 100.0) {
-        button.className = 'btn btn-outline-danger';
+        button.className = 'btn btn-outline-danger mr-3';
     }
+    var buttonIll = document.getElementById('buttonIll');
+    buttonIll.innerHTML = 'current ill ' + formatNumber(value.currentIll());
 }
 function fillTotals(chart, country, countries) {
     var confirmed = document.getElementById('buttonTotalConfirmed');
@@ -248,24 +284,36 @@ function fillTotals(chart, country, countries) {
     recovered.innerHTML = 'Total recovered: ' + countries.totalRecovered();
     var deaths = document.getElementById('buttonTotalDeaths');
     deaths.innerHTML = 'Total deaths: ' + countries.totalDeaths();
+    var ill = document.getElementById('buttonTotalIll');
+    ill.innerHTML = 'Total ill: ' + countries.totalIll();
 
-    confirmed.onclick = function() {
+    confirmed.onclick = function () {
         confirmed.classList.add('active');
         recovered.classList.remove('active');
         deaths.classList.remove('active');
+        ill.classList.remove('active');
         fillSelectSorted(chart, country, countries, countries.sortByConfirmed())
     }
-    recovered.onclick = function() {
+    recovered.onclick = function () {
         confirmed.classList.remove('active');
         recovered.classList.add('active');
         deaths.classList.remove('active');
+        ill.classList.remove('active');
         fillSelectSorted(chart, country, countries, countries.sortByRecovered())
     }
-    deaths.onclick = function() {
+    deaths.onclick = function () {
         confirmed.classList.remove('active');
         recovered.classList.remove('active');
         deaths.classList.add('active');
+        ill.classList.remove('active');
         fillSelectSorted(chart, country, countries, countries.sortByDeaths())
+    }
+    ill.onclick = function () {
+        confirmed.classList.remove('active');
+        recovered.classList.remove('active');
+        deaths.classList.remove('active');
+        ill.classList.add('active');
+        fillSelectSorted(chart, country, countries, countries.sortByIll())
     }
 }
 function getURLCountry() {
@@ -283,8 +331,8 @@ function dashboard() {
     var ctx = document.getElementById('theChart').getContext('2d');
     var chart = new Chart(ctx, { type: 'line', options: { maintainAspectRatio: false } });
     Countries.load(function (countries) {
+        fillTotals(chart, country, countries);
         fillSelect(chart, country, countries);
         fillChart(chart, country, countries);
-        fillTotals(chart, country, countries);
     });
 }
