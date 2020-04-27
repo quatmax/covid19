@@ -272,7 +272,7 @@ function fillChart(chart, country, countries) {
     fillInfos(country, countries);
 }
 function format4dAvg(button, f4dAvg) {
-    button.innerHTML = 'avg. 4d ' + formatFloat(f4dAvg);
+    button.innerHTML = button.innerHTML + formatFloat(f4dAvg);
     if (f4dAvg < 10.0) {
         button.className = 'btn btn-outline-success mr-3';
     }
