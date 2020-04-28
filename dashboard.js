@@ -271,8 +271,8 @@ function fillChart(chart, country, countries) {
     chart.update();
     fillInfos(country, countries);
 }
-function format4dAvg(button, f4dAvg) {
-    button.innerHTML = button.innerHTML + formatFloat(f4dAvg);
+function format4dAvg(button, f4dAvg, prefix) {
+    button.innerHTML = prefix + formatFloat(f4dAvg);
     if (f4dAvg < 10.0) {
         button.className = 'btn btn-outline-success mr-3';
     }
@@ -285,7 +285,7 @@ function format4dAvg(button, f4dAvg) {
 }
 function fillInfos(country, countries) {
     var value = countries.getCountry(country);
-    format4dAvg(document.getElementById('button4dAvg'), value.average4DayGrowth());
+    format4dAvg(document.getElementById('button4dAvg'), value.average4DayGrowth(), "4d avg. ");
     var buttonIll = document.getElementById('buttonIll');
     buttonIll.innerHTML = 'current ill ' + formatNumber(value.currentIll());
 }
@@ -300,7 +300,7 @@ function fillTotals(chart, country, countries) {
     var ill = document.getElementById('buttonTotalIll');
     ill.innerHTML = 'Total ill: ' + countries.totalIll();
     var avg = document.getElementById('buttonTotal4dAvg');
-    format4dAvg(avg, countries.total4dAvgNumber());
+    format4dAvg(avg, countries.total4dAvgNumber(), "Total 4d avg. ");
 
     confirmed.onclick = function () {
         confirmed.classList.add('active');
