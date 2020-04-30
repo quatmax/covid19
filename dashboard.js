@@ -56,6 +56,7 @@ class Country {
         this.confirmed = [];
         this.recovered = [];
         this.deaths = [];
+        this.ill = [];
         this.name = name;
     }
 
@@ -80,20 +81,35 @@ class Country {
     toInts(lineData) {
         return lineData.slice(4).map(function (item) { return parseInt(item, 10); });
     }
-    addInts(ints, member) {
+    sumInts(ints, member, sign) {
         for (var i = member.length; i < ints.length; ++i) {
             member.push(0);
         }
         for (var i = 0; i < ints.length; ++i) {
-            member[i] += Math.max(0, ints[i]);
+            member[i] += ints[i] * sign;
         }
     }
-    addConfirmed(lineData) { this.addInts(this.toInts(lineData), this.confirmed); }
-    addRecovered(lineData) { this.addInts(this.toInts(lineData), this.recovered); }
-    addDeaths(lineData) { this.addInts(this.toInts(lineData), this.deaths); }
-    addConfirmedInts(ints) { this.addInts(ints, this.confirmed); }
-    addRecoveredInts(ints) { this.addInts(ints, this.recovered); }
-    addDeathsInts(ints) { this.addInts(ints, this.deaths); }
+    addInts(ints, member) {
+        this.sumInts(ints, member, +1);
+    }
+    minusInts(ints, member) {
+        this.sumInts(ints, member, -1);
+    }
+    addConfirmed(lineData) { this.addConfirmedInts(this.toInts(lineData)); }
+    addRecovered(lineData) { this.addRecoveredInts(this.toInts(lineData)); }
+    addDeaths(lineData) { this.addDeathsInts(this.toInts(lineData)); }
+    addConfirmedInts(ints) {
+        this.addInts(ints, this.confirmed);
+        this.addInts(ints, this.ill);
+    }
+    addRecoveredInts(ints) {
+        this.addInts(ints, this.recovered);
+        this.minusInts(ints, this.ill);
+    }
+    addDeathsInts(ints) {
+        this.addInts(ints, this.deaths);
+        this.minusInts(ints, this.ill);
+    }
 
     average4DayGrowth() {
         var diff = 0.0;
@@ -268,6 +284,7 @@ function fillChart(chart, country, countries) {
     chart.data.datasets.push({ label: 'confirmed (' + formatNumber(value.currentConfirmed()) + ')', fill: false, borderColor: 'rgb(255, 99, 132)', data: value.confirmed });
     chart.data.datasets.push({ label: 'recovered (' + formatNumber(value.currentRecovered()) + ')', fill: false, borderColor: 'rgb(0, 204, 102)', data: value.recovered });
     chart.data.datasets.push({ label: 'deaths (' + formatNumber(value.currentDeaths()) + ')', fill: false, borderColor: 'rgb(0, 0, 0)', data: value.deaths });
+    chart.data.datasets.push({ label: 'ill (' + formatNumber(value.currentIll()) + ')', fill: false, borderColor: 'rgb(252, 186, 3)', data: value.ill });
     chart.update();
     fillInfos(country, countries);
 }
