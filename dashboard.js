@@ -257,13 +257,17 @@ class Countries {
 
 function fillSelectSorted(chart, country, countries, sortedCountries) {
     var select = document.getElementById('selectCountry');
+    var c = country;
+    if (c == undefined) {
+        c = select.options[select.selectedIndex].id;
+    }
     select.innerHTML = '';
     sortedCountries.forEach(function (value, index) {
         var opt = document.createElement('option');
         opt.innerHTML = (index + 1) + '. ' + value.name + ' (' + formatNumber(value.currentConfirmed()) + ')';
         opt.id = value.name;
         select.appendChild(opt);
-        if (value.name == country) {
+        if (value.name == c) {
             select.selectedIndex = select.length - 1;
             opt.select = true;
         }
@@ -325,7 +329,7 @@ function fillTotals(chart, country, countries) {
         deaths.classList.remove('active');
         ill.classList.remove('active');
         avg.classList.remove('active');
-        fillSelectSorted(chart, country, countries, countries.sortByConfirmed())
+        fillSelectSorted(chart, undefined, countries, countries.sortByConfirmed())
     }
     recovered.onclick = function () {
         confirmed.classList.remove('active');
@@ -333,7 +337,7 @@ function fillTotals(chart, country, countries) {
         deaths.classList.remove('active');
         ill.classList.remove('active');
         avg.classList.remove('active');
-        fillSelectSorted(chart, country, countries, countries.sortByRecovered())
+        fillSelectSorted(chart, undefined, countries, countries.sortByRecovered())
     }
     deaths.onclick = function () {
         confirmed.classList.remove('active');
@@ -341,7 +345,7 @@ function fillTotals(chart, country, countries) {
         deaths.classList.add('active');
         ill.classList.remove('active');
         avg.classList.remove('active');
-        fillSelectSorted(chart, country, countries, countries.sortByDeaths())
+        fillSelectSorted(chart, undefined, countries, countries.sortByDeaths())
     }
     ill.onclick = function () {
         confirmed.classList.remove('active');
@@ -349,7 +353,7 @@ function fillTotals(chart, country, countries) {
         deaths.classList.remove('active');
         ill.classList.add('active');
         avg.classList.remove('active');
-        fillSelectSorted(chart, country, countries, countries.sortByIll())
+        fillSelectSorted(chart, undefined, countries, countries.sortByIll())
     }
     avg.onclick = function () {
         confirmed.classList.remove('active');
@@ -357,7 +361,7 @@ function fillTotals(chart, country, countries) {
         deaths.classList.remove('active');
         ill.classList.remove('active');
         avg.classList.add('active');
-        fillSelectSorted(chart, country, countries, countries.sortBy4dAvg())
+        fillSelectSorted(chart, undefined, countries, countries.sortBy4dAvg())
     }
 }
 function getURLCountry() {
