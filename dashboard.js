@@ -79,7 +79,12 @@ class Country {
         return this.currentConfirmed() - this.currentRecovered() - this.currentDeaths();
     }
     toInts(lineData) {
-        return lineData.slice(4).map(function (item) { return parseInt(item, 10); });
+        return lineData.slice(4).map(function (item) {
+            if (item == "") {
+                return 0;
+            }
+            return parseInt(item, 10);
+        });
     }
     sumInts(ints, member, sign) {
         for (var i = member.length; i < ints.length; ++i) {
