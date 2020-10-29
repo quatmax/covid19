@@ -119,7 +119,11 @@ class Country {
     average4DayGrowth() {
         var diff = 0.0;
         for (var i = this.confirmed.length - 1; i >= this.confirmed.length - 5; --i) {
-            diff += ((this.confirmed[i] - this.confirmed[i - 1]) / this.confirmed[i - 1]) * 100.0;
+            var pre = this.confirmed[i - 1];
+            if (pre == 0) {
+                continue;
+            }
+            diff += ((this.confirmed[i] - pre) / pre) * 100.0;
         }
         return Number.parseFloat(diff / 4.0);
     }
