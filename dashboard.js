@@ -349,8 +349,8 @@ function fillChart(chart, country, countries) {
     var value = countries.getCountry(country);
     chart.data.datasets.push({ yAxisID: 'A', label: 'confirmed (' + formatNumber(value.currentConfirmed()) + ')', fill: false, borderColor: 'rgb(255, 99, 132)', data: value.confirmed });
     chart.data.datasets.push({ yAxisID: 'A', label: 'recovered (' + formatNumber(value.currentRecovered()) + ')', fill: false, borderColor: 'rgb(0, 204, 102)', data: value.recovered });
-    chart.data.datasets.push({ yAxisID: 'B', label: 'deaths (' + formatNumber(value.currentDeaths()) + ')', fill: false, borderColor: 'rgb(0, 0, 0)', data: value.deaths });
     chart.data.datasets.push({ yAxisID: 'A', label: 'ill (' + formatNumber(value.currentIll()) + ')', fill: false, borderColor: 'rgb(252, 186, 3)', data: value.ill });
+    chart.data.datasets.push({ yAxisID: 'B', label: 'deaths (' + formatNumber(value.currentDeaths()) + ')', fill: false, borderColor: 'rgb(0, 0, 0)', data: value.deaths });
     chart.update();
     fillInfos(country, countries);
 }
