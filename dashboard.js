@@ -356,13 +356,13 @@ function fillChart(chart, country, countries) {
 }
 function formatIncidence(button, incidence, prefix) {
     button.innerHTML = prefix + formatNumber(incidence);
-    if (incidence < 10) {
+    if (incidence < 100) {
         button.className = 'btn btn-outline-success mr-3';
     }
-    else if (incidence < 25) {
+    else if (incidence < 200) {
         button.className = 'btn btn-outline-warning mr-3';
     }
-    else if (incidence > 50) {
+    else {
         button.className = 'btn btn-outline-danger mr-3';
     }
 }
