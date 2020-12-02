@@ -1,12 +1,29 @@
-function formatFloat(f) {
-    var formatted = f.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    if (f < 0.0) {
-        return '-' + formatted;
-    }
-    else {
-        return '+' + formatted;
-    }
+// Return array of string values, or NULL if CSV string not well formed.
+function CSVtoArray(text) {
+    var re_valid = /^\s*(?:'[^'\\]*(?:\\[\S\s][^'\\]*)*'|"[^"\\]*(?:\\[\S\s][^"\\]*)*"|[^,'"\s\\]*(?:\s+[^,'"\s\\]+)*)\s*(?:,\s*(?:'[^'\\]*(?:\\[\S\s][^'\\]*)*'|"[^"\\]*(?:\\[\S\s][^"\\]*)*"|[^,'"\s\\]*(?:\s+[^,'"\s\\]+)*)\s*)*$/;
+    var re_value = /(?!\s*$)\s*(?:'([^'\\]*(?:\\[\S\s][^'\\]*)*)'|"([^"\\]*(?:\\[\S\s][^"\\]*)*)"|([^,'"\s\\]*(?:\s+[^,'"\s\\]+)*))\s*(?:,|$)/g;
+
+    // Return NULL if input string is not well formed CSV string.
+    if (!re_valid.test(text)) return null;
+
+    var a = []; // Initialize array to receive values.
+    text.replace(re_value, // "Walk" the string using replace with callback.
+        function (m0, m1, m2, m3) {
+
+            // Remove backslash from \' in single quoted values.
+            if (m1 !== undefined) a.push(m1.replace(/\\'/g, "'"));
+
+            // Remove backslash from \" in double quoted values.
+            else if (m2 !== undefined) a.push(m2.replace(/\\"/g, '"'));
+            else if (m3 !== undefined) a.push(m3);
+            return ''; // Return empty string.
+        });
+
+    // Handle special case of empty last value.
+    if (/,\s*$/.test(text)) a.push('');
+    return a;
 }
+
 function formatNumber(f) {
     return f.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
@@ -15,8 +32,11 @@ function getFileName(file) {
     return "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_" + file + "_global.csv";
 }
 
-function visitFile(file, visitor) {
-    var filename = getFileName(file);
+function getCountryInfoFile() {
+    return "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/UID_ISO_FIPS_LookUp_Table.csv";
+}
+
+function visitRawFile(filename, visitor) {
     var dataFile = new XMLHttpRequest();
     dataFile.open("GET", filename, true);
     dataFile.onreadystatechange = function () {
@@ -28,22 +48,28 @@ function visitFile(file, visitor) {
     };
     dataFile.send();
 }
-function visitLineData(file, visitLine, onFinished) {
-    visitFile(file, function (allTextLines) {
+
+function visitRawLineData(file, visitLine, onFinished) {
+    visitRawFile(file, function (allTextLines) {
         for (var index = 1; index < allTextLines.length; index++) {
-            var line = allTextLines[index].replace('"Korea, South"', 'South Korea').replace('"Bonaire, Sint Eustatius and Saba"', 'Sint Eustatius and Saba');
+            var line = allTextLines[index].replaceAll("'", "");
             if (line.trim().length == 0) {
                 continue;
             }
-            visitLine(line.split(/,/));
+            visitLine(CSVtoArray(line));
         }
         if (onFinished != undefined) {
             onFinished();
         }
     });
 }
+
+function visitLineData(file, visitLine, onFinished) {
+    visitRawLineData(getFileName(file), visitLine, onFinished);
+}
+
 function visitLabels(file, visitLabels, onFinished) {
-    visitFile(file, function (allTextLines) {
+    visitRawFile(getFileName(file), function (allTextLines) {
         visitLabels(allTextLines[0].split(/,/).slice(4));
         if (onFinished != undefined) {
             onFinished();
@@ -57,15 +83,26 @@ class Country {
         this.recovered = [];
         this.deaths = [];
         this.ill = [];
+        this.population = 0.0;
         this.name = name;
     }
 
-    upperBoundValue(member) {
+    value(member, index) {
         if (member.length <= 0) {
-            return -1;
+            return 0;
         }
-        return member[member.length - 1];
+        if (index >= member.length || index < 0) {
+            return 0;
+        }
+        return member[index];
     }
+    upperBoundValue(member) {
+        return this.value(member, member.length - 1);
+    }
+    currentConfirmedDeltaAt(index) {
+        return this.value(this.confirmed, index) - this.value(this.confirmed, index - 1);
+    }
+
     currentConfirmed() {
         return this.upperBoundValue(this.confirmed);
     }
@@ -103,6 +140,14 @@ class Country {
     addConfirmed(lineData) { this.addConfirmedInts(this.toInts(lineData)); }
     addRecovered(lineData) { this.addRecoveredInts(this.toInts(lineData)); }
     addDeaths(lineData) { this.addDeathsInts(this.toInts(lineData)); }
+    addPopulation(lineData) {
+        if (lineData[11].trim().length > 0) {
+            this.population += parseFloat(lineData[11]);
+        }
+    }
+    getPopulation() {
+        return this.population;
+    }
     addConfirmedInts(ints) {
         this.addInts(ints, this.confirmed);
         this.addInts(ints, this.ill);
@@ -116,16 +161,16 @@ class Country {
         this.minusInts(ints, this.ill);
     }
 
-    average4DayGrowth() {
-        var diff = 0.0;
-        for (var i = this.confirmed.length - 1; i >= this.confirmed.length - 5; --i) {
-            var pre = this.confirmed[i - 1];
-            if (pre == 0) {
-                continue;
-            }
-            diff += ((this.confirmed[i] - pre) / pre) * 100.0;
+    incidence() {
+        let sumConfirmed = 0.0;
+        for (let i = 1; i <= 7; ++i) {
+            let index = this.confirmed.length - i;
+            sumConfirmed += this.currentConfirmedDeltaAt(index);
         }
-        return Number.parseFloat(diff / 4.0);
+        if (this.getPopulation() == 0) {
+            return 0;
+        }
+        return (sumConfirmed / this.getPopulation()) * 100000.0;
     }
 };
 class Countries {
@@ -152,8 +197,15 @@ class Countries {
                     visitLineData('deaths', function (lineData) {
                         cs.countries.get(lineData[1]).addDeaths(lineData);
                     }, function () {
-                        cs.sumWorld();
-                        onFinished(cs);
+                        visitRawLineData(getCountryInfoFile(), function (lineData) {
+                            var country = cs.countries.get(lineData[7]);
+                            if (country != undefined && lineData[6].length == 0) {
+                                country.addPopulation(lineData);
+                            }
+                        }, function () {
+                            cs.sumWorld();
+                            onFinished(cs);
+                        });
                     });
                 });
             });
@@ -215,12 +267,12 @@ class Countries {
             return 0;
         });
     }
-    sortBy4dAvg() {
+    sortByIncidence() {
         return this.sortBy(function (a, b) {
-            if (a.average4DayGrowth() > b.average4DayGrowth()) {
+            if (a.incidence() > b.incidence()) {
                 return -1;
             }
-            if (a.average4DayGrowth() < b.average4DayGrowth()) {
+            else if (a.incidence() < b.incidence()) {
                 return 1;
             }
             return 0;
@@ -231,6 +283,7 @@ class Countries {
             this.world.addConfirmedInts(value.confirmed);
             this.world.addRecoveredInts(value.recovered);
             this.world.addDeathsInts(value.deaths);
+            this.world.population += value.getPopulation();
         }, this);
     }
 
@@ -259,8 +312,8 @@ class Countries {
     totalIll() {
         return formatNumber(this.totalIllNumber());
     }
-    total4dAvgNumber() {
-        return this.world.average4DayGrowth();
+    totalIncidence() {
+        return this.world.incidence();
     }
 };
 
@@ -273,7 +326,7 @@ function fillSelectSorted(chart, country, countries, sortedCountries) {
     select.innerHTML = '';
     sortedCountries.forEach(function (value, index) {
         var opt = document.createElement('option');
-        opt.innerHTML = (index + 1) + '. ' + value.name + ' (' + formatNumber(value.currentConfirmed()) + ')';
+        opt.innerHTML = (index + 1) + '. ' + value.name + ' (' + formatNumber(value.incidence()) + ')';
         opt.id = value.name;
         select.appendChild(opt);
         if (value.name == c) {
@@ -301,21 +354,21 @@ function fillChart(chart, country, countries) {
     chart.update();
     fillInfos(country, countries);
 }
-function format4dAvg(button, f4dAvg, prefix) {
-    button.innerHTML = prefix + formatFloat(f4dAvg);
-    if (f4dAvg < 10.0) {
+function formatIncidence(button, incidence, prefix) {
+    button.innerHTML = prefix + formatNumber(incidence);
+    if (incidence < 10) {
         button.className = 'btn btn-outline-success mr-3';
     }
-    else if (f4dAvg < 20.0) {
+    else if (incidence < 25) {
         button.className = 'btn btn-outline-warning mr-3';
     }
-    else if (f4dAvg < 100.0) {
+    else if (incidence > 50) {
         button.className = 'btn btn-outline-danger mr-3';
     }
 }
 function fillInfos(country, countries) {
     var value = countries.getCountry(country);
-    format4dAvg(document.getElementById('button4dAvg'), value.average4DayGrowth(), "4d avg. ");
+    formatIncidence(document.getElementById('buttonIncidence'), value.incidence(), "Incidence ");
     var buttonIll = document.getElementById('buttonIll');
     buttonIll.innerHTML = 'current ill ' + formatNumber(value.currentIll());
 }
@@ -329,8 +382,8 @@ function fillTotals(chart, country, countries) {
     deaths.innerHTML = 'Total deaths: ' + countries.totalDeaths();
     var ill = document.getElementById('buttonTotalIll');
     ill.innerHTML = 'Total ill: ' + countries.totalIll();
-    var avg = document.getElementById('buttonTotal4dAvg');
-    format4dAvg(avg, countries.total4dAvgNumber(), "Total 4d avg. ");
+    var avg = document.getElementById('buttonTotalIncidence');
+    formatIncidence(avg, countries.totalIncidence(), "Total Incidence ");
 
     confirmed.onclick = function () {
         confirmed.classList.add('active');
@@ -370,7 +423,7 @@ function fillTotals(chart, country, countries) {
         deaths.classList.remove('active');
         ill.classList.remove('active');
         avg.classList.add('active');
-        fillSelectSorted(chart, undefined, countries, countries.sortBy4dAvg())
+        fillSelectSorted(chart, undefined, countries, countries.sortByIncidence())
     }
 }
 function getURLCountry() {
