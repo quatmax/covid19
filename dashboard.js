@@ -80,9 +80,8 @@ function visitLabels(file, visitLabels, onFinished) {
 class Country {
     constructor(name) {
         this.confirmed = [];
-        this.recovered = [];
         this.deaths = [];
-        this.ill = [];
+        this.incidence = [];
         this.population = 0.0;
         this.name = name;
     }
@@ -106,14 +105,8 @@ class Country {
     currentConfirmed() {
         return this.upperBoundValue(this.confirmed);
     }
-    currentRecovered() {
-        return this.upperBoundValue(this.recovered);
-    }
     currentDeaths() {
         return this.upperBoundValue(this.deaths);
-    }
-    currentIll() {
-        return this.currentConfirmed() - this.currentRecovered() - this.currentDeaths();
     }
     toInts(lineData) {
         return lineData.slice(4).map(function (item) {
@@ -138,7 +131,6 @@ class Country {
         this.sumInts(ints, member, -1);
     }
     addConfirmed(lineData) { this.addConfirmedInts(this.toInts(lineData)); }
-    addRecovered(lineData) { this.addRecoveredInts(this.toInts(lineData)); }
     addDeaths(lineData) { this.addDeathsInts(this.toInts(lineData)); }
     addPopulation(lineData) {
         if (lineData[11].trim().length > 0) {
@@ -150,21 +142,23 @@ class Country {
     }
     addConfirmedInts(ints) {
         this.addInts(ints, this.confirmed);
-        this.addInts(ints, this.ill);
-    }
-    addRecoveredInts(ints) {
-        this.addInts(ints, this.recovered);
-        this.minusInts(ints, this.ill);
     }
     addDeathsInts(ints) {
         this.addInts(ints, this.deaths);
-        this.minusInts(ints, this.ill);
     }
-
-    incidence() {
+    currentIncidence() {
+        return this.upperBoundValue(this.incidence);
+    }
+    calcIncidences() {
+        this.incidence = [];
+        for (var i = 0; i < this.confirmed.length; ++i) {
+            this.incidence.push(this.calcIncidence(i));
+        }
+    }
+    calcIncidence(atIndex) {
         let sumConfirmed = 0.0;
-        for (let i = 1; i <= 7; ++i) {
-            let index = this.confirmed.length - i;
+        for (let i = 0; i < 7; ++i) {
+            let index = atIndex - i;
             sumConfirmed += this.currentConfirmedDeltaAt(index);
         }
         if (this.getPopulation() == 0) {
@@ -191,21 +185,18 @@ class Countries {
                 }
                 country.addConfirmed(lineData);
             }, function () {
-                visitLineData('recovered', function (lineData) {
-                    cs.countries.get(lineData[1]).addRecovered(lineData);
+                visitLineData('deaths', function (lineData) {
+                    cs.countries.get(lineData[1]).addDeaths(lineData);
                 }, function () {
-                    visitLineData('deaths', function (lineData) {
-                        cs.countries.get(lineData[1]).addDeaths(lineData);
+                    visitRawLineData(getCountryInfoFile(), function (lineData) {
+                        var country = cs.countries.get(lineData[7]);
+                        if (country != undefined && lineData[6].length == 0) {
+                            country.addPopulation(lineData);
+                        }
                     }, function () {
-                        visitRawLineData(getCountryInfoFile(), function (lineData) {
-                            var country = cs.countries.get(lineData[7]);
-                            if (country != undefined && lineData[6].length == 0) {
-                                country.addPopulation(lineData);
-                            }
-                        }, function () {
-                            cs.sumWorld();
-                            onFinished(cs);
-                        });
+                        cs.sumWorld();
+                        cs.calcIncidences();
+                        onFinished(cs);
                     });
                 });
             });
@@ -234,17 +225,6 @@ class Countries {
             return 0;
         });
     }
-    sortByRecovered() {
-        return this.sortBy(function (a, b) {
-            if (a.currentRecovered() > b.currentRecovered()) {
-                return -1;
-            }
-            if (a.currentRecovered() < b.currentRecovered()) {
-                return 1;
-            }
-            return 0;
-        });
-    }
     sortByDeaths() {
         return this.sortBy(function (a, b) {
             if (a.currentDeaths() > b.currentDeaths()) {
@@ -256,23 +236,12 @@ class Countries {
             return 0;
         });
     }
-    sortByIll() {
-        return this.sortBy(function (a, b) {
-            if (a.currentIll() > b.currentIll()) {
-                return -1;
-            }
-            if (a.currentIll() < b.currentIll()) {
-                return 1;
-            }
-            return 0;
-        });
-    }
     sortByIncidence() {
         return this.sortBy(function (a, b) {
-            if (a.incidence() > b.incidence()) {
+            if (a.currentIncidence() > b.currentIncidence()) {
                 return -1;
             }
-            else if (a.incidence() < b.incidence()) {
+            else if (a.currentIncidence() < b.currentIncidence()) {
                 return 1;
             }
             return 0;
@@ -281,10 +250,15 @@ class Countries {
     sumWorld() {
         this.countries.forEach(function (value) {
             this.world.addConfirmedInts(value.confirmed);
-            this.world.addRecoveredInts(value.recovered);
             this.world.addDeathsInts(value.deaths);
             this.world.population += value.getPopulation();
         }, this);
+    }
+    calcIncidences() {
+        this.countries.forEach(function (value) {
+            value.calcIncidences();
+        }, this);
+        this.world.calcIncidences();
     }
 
     totalConfirmedNumber() {
@@ -294,26 +268,14 @@ class Countries {
     totalConfirmed() {
         return formatNumber(this.totalConfirmedNumber());
     }
-    totalRecoveredNumber() {
-        return this.world.currentRecovered();
-    }
-    totalRecovered() {
-        return formatNumber(this.totalRecoveredNumber());
-    }
     totalDeathsNumber() {
         return this.world.currentDeaths();
     }
     totalDeaths() {
         return formatNumber(this.totalDeathsNumber());
     }
-    totalIllNumber() {
-        return this.world.currentIll();
-    }
-    totalIll() {
-        return formatNumber(this.totalIllNumber());
-    }
     totalIncidence() {
-        return this.world.incidence();
+        return this.world.currentIncidence();
     }
 };
 
@@ -326,7 +288,7 @@ function fillSelectSorted(chart, country, countries, sortedCountries) {
     select.innerHTML = '';
     sortedCountries.forEach(function (value, index) {
         var opt = document.createElement('option');
-        opt.innerHTML = (index + 1) + '. ' + value.name + ' (' + formatNumber(value.incidence()) + ')';
+        opt.innerHTML = (index + 1) + '. ' + value.name + ' (' + formatNumber(value.currentIncidence()) + ')';
         opt.id = value.name;
         select.appendChild(opt);
         if (value.name == c) {
@@ -347,9 +309,7 @@ function fillChart(chart, country, countries) {
     chart.data.labels = countries.labels;
     chart.data.datasets = [];
     var value = countries.getCountry(country);
-    chart.data.datasets.push({ yAxisID: 'A', label: 'confirmed (' + formatNumber(value.currentConfirmed()) + ')', fill: false, borderColor: 'rgb(255, 99, 132)', data: value.confirmed });
-    chart.data.datasets.push({ yAxisID: 'A', label: 'recovered (' + formatNumber(value.currentRecovered()) + ')', fill: false, borderColor: 'rgb(0, 204, 102)', data: value.recovered });
-    chart.data.datasets.push({ yAxisID: 'A', label: 'ill (' + formatNumber(value.currentIll()) + ')', fill: false, borderColor: 'rgb(252, 186, 3)', data: value.ill });
+    chart.data.datasets.push({ yAxisID: 'A', label: 'incidence (' + formatNumber(value.currentIncidence()) + ')', fill: false, borderColor: 'rgb(252, 186, 3)', data: value.incidence });
     chart.data.datasets.push({ yAxisID: 'B', label: 'deaths (' + formatNumber(value.currentDeaths()) + ')', fill: false, borderColor: 'rgb(0, 0, 0)', data: value.deaths });
     chart.update();
     fillInfos(country, countries);
@@ -368,60 +328,32 @@ function formatIncidence(button, incidence, prefix) {
 }
 function fillInfos(country, countries) {
     var value = countries.getCountry(country);
-    formatIncidence(document.getElementById('buttonIncidence'), value.incidence(), "Incidence ");
-    var buttonIll = document.getElementById('buttonIll');
-    buttonIll.innerHTML = 'current ill ' + formatNumber(value.currentIll());
+    formatIncidence(document.getElementById('buttonIncidence'), value.currentIncidence(), "Incidence ");
 }
 function fillTotals(chart, country, countries) {
     var confirmed = document.getElementById('buttonTotalConfirmed');
     confirmed.innerHTML = 'Total confirmed: ' + countries.totalConfirmed();
     confirmed.classList.add('active');
-    var recovered = document.getElementById('buttonTotalRecovered');
-    recovered.innerHTML = 'Total recovered: ' + countries.totalRecovered();
     var deaths = document.getElementById('buttonTotalDeaths');
     deaths.innerHTML = 'Total deaths: ' + countries.totalDeaths();
-    var ill = document.getElementById('buttonTotalIll');
-    ill.innerHTML = 'Total ill: ' + countries.totalIll();
     var avg = document.getElementById('buttonTotalIncidence');
     formatIncidence(avg, countries.totalIncidence(), "Total Incidence ");
 
     confirmed.onclick = function () {
         confirmed.classList.add('active');
-        recovered.classList.remove('active');
         deaths.classList.remove('active');
-        ill.classList.remove('active');
         avg.classList.remove('active');
         fillSelectSorted(chart, undefined, countries, countries.sortByConfirmed())
     }
-    recovered.onclick = function () {
-        confirmed.classList.remove('active');
-        recovered.classList.add('active');
-        deaths.classList.remove('active');
-        ill.classList.remove('active');
-        avg.classList.remove('active');
-        fillSelectSorted(chart, undefined, countries, countries.sortByRecovered())
-    }
     deaths.onclick = function () {
         confirmed.classList.remove('active');
-        recovered.classList.remove('active');
         deaths.classList.add('active');
-        ill.classList.remove('active');
         avg.classList.remove('active');
         fillSelectSorted(chart, undefined, countries, countries.sortByDeaths())
     }
-    ill.onclick = function () {
-        confirmed.classList.remove('active');
-        recovered.classList.remove('active');
-        deaths.classList.remove('active');
-        ill.classList.add('active');
-        avg.classList.remove('active');
-        fillSelectSorted(chart, undefined, countries, countries.sortByIll())
-    }
     avg.onclick = function () {
         confirmed.classList.remove('active');
-        recovered.classList.remove('active');
         deaths.classList.remove('active');
-        ill.classList.remove('active');
         avg.classList.add('active');
         fillSelectSorted(chart, undefined, countries, countries.sortByIncidence())
     }
