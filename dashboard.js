@@ -309,8 +309,8 @@ function fillChart(chart, country, countries) {
     chart.data.labels = countries.labels;
     chart.data.datasets = [];
     var value = countries.getCountry(country);
-    chart.data.datasets.push({ yAxisID: 'A', label: 'incidence (' + formatNumber(value.currentIncidence()) + ')', fill: false, borderColor: 'rgb(252, 186, 3)', data: value.incidence });
-    chart.data.datasets.push({ yAxisID: 'B', label: 'deaths (' + formatNumber(value.currentDeaths()) + ')', fill: false, borderColor: 'rgb(0, 0, 0)', data: value.deaths });
+    chart.data.datasets.push({ yAxisID: 'A', label: 'incidence (' + formatNumber(value.currentIncidence()) + ')', fill: false, borderColor: 'rgb(252, 186, 3)', data: value.incidence, pointRadius: 0 });
+    chart.data.datasets.push({ yAxisID: 'B', label: 'deaths (' + formatNumber(value.currentDeaths()) + ')', fill: false, borderColor: 'rgb(0, 0, 0)', data: value.deaths, pointRadius: 0 });
     chart.update();
     fillInfos(country, countries);
 }
